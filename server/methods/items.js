@@ -27,15 +27,15 @@ Meteor.methods({
                             modifiedDate: item.dmmodified,
                             importedDate: new Date(),
                             abstract: item.descri,
-                            seriesName: item.series,                  // check CGS Rest response
-                            seriesNumber: item.seriesa,               // check CGS Rest response
+                            seriesName: item.series,                  // check CGS REST response
+                            seriesNumber: item.seriesa,               // check CGS REST response
                             publisher: item.publis,
                             place: item.place,
                             citation: item.full,
-                            language: filterLanguage(item.langua),                    // select values
-                            agrovocSubjects: item.loc,                // to uppercase
-                            region: item.subjec,                      // strip countries from list
-                            country: item.subjec,                     // strip regions from list
+                            language: filterLanguage(item.langua),
+                            agrovocSubjects: item.loc.toUpperCase(),
+                            region: filterLocation(item.subjec, true),                      // strip countries from list
+                            country: filterLocation(item.subjec, false),                     // strip regions from list
                             url: "http://ebrary.ifpri.org/cdm/ref/collection/" + item.collection.replace("/", "") + "/id/" + item.dmrecord,
                             crp: item.cgiar,                          // to uppercase and select values
                             outputType: item.type,
@@ -57,7 +57,7 @@ Meteor.methods({
     },
 });
 
-function filterLanguage(language){
+function filterLanguage(language) {
     var cgLanguages = [
         {value: "am", name: "Amharic"},
         {value: "zh", name: "Chinese"},
@@ -74,10 +74,35 @@ function filterLanguage(language){
         {value: "tr", name: "Turkish"},
         {value: "vi", name: "Vietnamese"}
     ];
-    var lang = _.find(cgLanguages, function(l){
+    var lang = _.find(cgLanguages, function (l) {
         return this == l.name;
     }, language);
 
     lang = lang || {value: "other", name: "(Other)"};
     return lang.value;
+}
+
+function filterLocation(location, isRegion) {
+    var cgRegions = [
+        "ACP", "AFRICA", "AFRICA SOUTH OF SAHARA", "ASIA", "CARIBBEAN", "CARIBBEAN", "CENTRAL AFRICA", "CENTRAL AMERICA",
+        "CENTRAL ASIA", "EAST ASIA", "EAST AFRICA", "EUROPE", "LATIN AMERICA", "MIDDLE EAST", "NORTH AFRICA", "NORTH AMERICA",
+        "PACIFIC", "SOUTH ASIA", "SOUTHEAST ASIA", "SOUTHERN AFRICA", "PACIFIC", "SAHEL", "SOUTH AMERICA", "WEST AFRICA",
+        "WEST ASIA", "WEST AND CENTRAL AFRICA"
+    ];
+
+
+    var context = {
+        cgRegions: cgRegions,
+        itemLocations: location.split("; "),
+        filteredLocations: [],
+        isRegion: isRegion
+    };
+
+    _.each(context.itemLocations, function(l){
+        if((_.contains(this.cgRegions, l) && isRegion) || (!_.contains(this.cgRegions, l) && !isRegion)){
+            context.filteredLocations.push(l);
+        }
+    }, context);
+
+    return context.filteredLocations.join("; ");
 }
