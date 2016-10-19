@@ -32,7 +32,7 @@ Meteor.methods({
                             publisher: item.publis,
                             place: item.place,
                             citation: item.full,
-                            language: item.langua,                    // select values
+                            language: filterLanguage(item.langua),                    // select values
                             agrovocSubjects: item.loc,                // to uppercase
                             region: item.subjec,                      // strip countries from list
                             country: item.subjec,                     // strip regions from list
@@ -56,3 +56,28 @@ Meteor.methods({
         });
     },
 });
+
+function filterLanguage(language){
+    var cgLanguages = [
+        {value: "am", name: "Amharic"},
+        {value: "zh", name: "Chinese"},
+        {value: "en", name: "English"},
+        {value: "es", name: "Spanish"},
+        {value: "de", name: "German"},
+        {value: "fr", name: "French"},
+        {value: "id", name: "Indonesian"},
+        {value: "it", name: "Italian"},
+        {value: "pt", name: "Portuguese"},
+        {value: "ja", name: "Japanese"},
+        {value: "om", name: "Oromiffa"},
+        {value: "sw", name: "Swahili"},
+        {value: "tr", name: "Turkish"},
+        {value: "vi", name: "Vietnamese"}
+    ];
+    var lang = _.find(cgLanguages, function(l){
+        return this == l.name;
+    }, language);
+
+    lang = lang || {value: "other", name: "(Other)"};
+    return lang.value;
+}
