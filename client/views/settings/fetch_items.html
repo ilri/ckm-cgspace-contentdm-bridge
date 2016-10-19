@@ -1,0 +1,51 @@
+<template name="fetchItems">
+    {{> navbar }}
+    <div class="row">
+        <div class="col-sm-12">
+            <div class="panel panel-default">
+                <div class="panel-heading">
+                    <h4>Fetch Items from End Point</h4>
+                </div>
+                <div class="panel-body">
+                    <form id="fetch-items">
+                        <div class="row">
+                            <div class="col-sm-6">
+                                <div class="form-group label-floating">
+                                    <label class="control-label" for="endpoint-to-use">Select End Point</label>
+                                    <select id="endpoint-to-use" class="form-control">
+                                        <option value=""> </option>
+                                        {{#each endPoints}}
+                                            <option value="{{_id}}">{{name}}</option>
+                                        {{/each}}
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-sm-6">
+                                <div class="form-group">
+                                    <button id="fetch-items-button"
+                                            class="btn btn-default btn-block btn-success btn-raised"
+                                            type="submit">
+                                        <i class="fa fa-refresh"></i> Get Items
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        {{#if isEndPointSelected }}
+                            {{> endPointStat }}
+                        {{/if}}
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    {{> items }}
+</template>
+
+<template name="endPointStat">
+    <div class="row">
+        <div class="col-sm-4"><span>Start: {{start}}</span></div>
+        <div class="col-sm-4"><span>Max. # of items to fetch: {{maxrecs}}</span></div>
+        <div class="col-sm-4"><span>Total # of items: {{total}}</span></div>
+    </div>
+</template>
+

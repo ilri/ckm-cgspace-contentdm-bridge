@@ -1,0 +1,86 @@
+<template name="endPoints">
+    {{> navbar }}
+    {{> endPointsForm }}
+    <div class="row">
+        <div class="panel panel-default items">
+            <div class="panel-body end-points-list">
+                <table class="table table-striped">
+                    <thead>
+                    <tr>
+                        <th class="col-md-3 hidden-xs">Name</th>
+                        <th class="col-md-9 hidden-xs">URL</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    {{#each endPoints}}
+                        <tr class="{{selectedRow}}">
+                            <td class="col-md-3">
+                                <strong class="hidden-sm hidden-md hidden-lg">Name:</strong> {{ name }}
+                                <div class="visible-xs">
+                                    {{> endPointUrl }}
+                                </div>
+                            </td>
+                            <td class="col-md-9 hashTag hidden-xs">
+                                {{> endPointUrl }}
+                            </td>
+                        </tr>
+                    {{/each}}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</template>
+
+<template name="endPointsForm">
+    <div class="row">
+        <div class="panel panel-default items">
+            <div class="panel-heading">
+                <h4>Add new End Point</h4>
+            </div>
+            <div class="panel-body end-points-list">
+                <form id="end-points-form">
+                    <div class="row">
+                        <div class="col-sm-4">
+                            <div class="form-group label-floating">
+                                <label class="control-label" for="endpoint-name">Name</label>
+                                <input type="text" class="form-control" name="endPointName" id="endpoint-name">
+                                <p class="help-block">Name to identify the End Point</p>
+                            </div>
+                        </div>
+                        <div class="col-sm-4 ">
+                            <div class="form-group label-floating">
+                                <label class="control-label" for="endpoint-url">URL</label>
+                                <input type="text" class="form-control" name="endPointUrl" id="endpoint-url">
+                                <p class="help-block">The URL to hit</p>
+                            </div>
+                        </div>
+                        <div class="col-sm-4">
+                            <div class="form-group">
+                                <button id="add-endpoint" type="submit" class="btn btn-block btn-raised btn-primary">
+                                    <i class="fa fa-plus"></i> Add Endpoint
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</template>
+
+<template name="endPointUrl">
+    <div>
+        <strong class="hidden-sm hidden-md hidden-lg">URL:</strong>
+        {{#unless editUrlMode}}
+            <span title="{{url}}"></span>{{ shortenURl }} <a class="edit-url-button" href="#"><i
+                class="fa fa-pencil"></i></a>
+        {{else}}
+            {{> endPointUrlEditForm}}
+        {{/unless}}
+    </div>
+</template>
+
+<template name="endPointUrlEditForm">
+    <input id="edit-url" type="text" value="{{url}}" autofocus="autofocus"/>
+</template>

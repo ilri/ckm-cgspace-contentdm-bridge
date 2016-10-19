@@ -1,0 +1,30 @@
+<template name="communities">
+    {{> navbar }}
+    <div class="row">
+        <div class="col-sm-12">
+            <div class="panel panel-default">
+                <div class="panel-heading">
+                    <h4>Top-Level Communities</h4>
+                </div>
+                <div class="panel-body">
+                    <table class="table table-striped">
+                        <thead>
+                        <tr>
+                            <th class="col-md-7 hidden-xs">Name</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        {{#each communities}}
+                            <tr class="{{selectedRow}}">
+                                <td class="col-md-7">
+                                    <strong class="hidden-sm hidden-md hidden-lg">Name:</strong> {{ name}}
+                                </td>
+                            </tr>
+                        {{/each}}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</template>

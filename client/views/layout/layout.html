@@ -1,0 +1,28 @@
+<head>
+    <title>CGBridge</title>
+    <meta name="viewport" content="width=device-width, user-scalable=yes, initial-scale=1">
+    <link rel="shortcut icon" type="image/x-icon" href="/img/favicon.ico"/>
+</head>
+
+<template name="layout">
+    <div class="container-fluid">
+        <div class="row">
+            <section id="main-content" class="col-md-10 col-md-offset-1">
+                {{> yield}}
+            </section>
+        </div>
+    </div>
+</template>
+
+<template name="footer">
+    <footer>
+        <section>
+            <p>This application is developed and maintained by the <a href="https://www.ilri.org/ckm" target="_blank">ILRI
+                CKM Team</a> on <a href="https://github.com/ilri/ckm-cgspace-contentdm-bridge">GitHub <i
+                    class="fa fa-github"></i></a></p>
+            <p class="small">Logo Icon made by <a href="http://www.freepik.com" title="Freepik">Freepik</a> from <a href="http://www.flaticon.com" title="Flaticon">www.flaticon.com</a> is licensed by <a
+                    href="http://creativecommons.org/licenses/by/3.0/" title="Creative Commons BY 3.0" target="_blank">CC
+                3.0 BY</a></p>
+        </section>
+    </footer>
+</template>
