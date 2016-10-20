@@ -19,6 +19,7 @@ Meteor.methods({
                     // Check if the items is not in the database
                     if (Items.Collection.find({itemId: item.dmrecord}).count() == 0) {
                         var doc = {
+                            endPointId: endpoint._id,
                             collection: item.collection.replace("/", ""),
                             itemId: item.dmrecord,
                             title: item.title + ": " + item.subtit,
