@@ -58,7 +58,12 @@ Template.endPointsForm.events({
 
         var newEndPoint = {
             name: e.target.elements.endPointName.value,
-            url: e.target.elements.endPointUrl.value
+            collection: e.target.elements.endPointCollection.value,
+            searchString: e.target.elements.endPointSearchString.value,
+            fields: e.target.elements.endPointFields.value,
+            sort: e.target.elements.endPointSort.value,
+            maxRecords: e.target.elements.endPointMaxRecords.value,
+            start: e.target.elements.endPointStart.value
         };
 
         // @TODO: Validate document
@@ -73,8 +78,8 @@ Template.endPointUrl.helpers({
     editUrlMode: function () {
         return editUrl.get() == this._id;
     },
-    shortenURl: function(){
-        return this.url.substring(0, 85);
+    shortenedURl: function(){
+        return getEndPointURL(this).substring(0, 85);
     }
 });
 
