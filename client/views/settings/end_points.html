@@ -41,21 +41,56 @@
             <div class="panel-body end-points-list">
                 <form id="end-points-form">
                     <div class="row">
-                        <div class="col-sm-4">
+                        <div class="col-sm-3">
                             <div class="form-group label-floating">
                                 <label class="control-label" for="endpoint-name">Name</label>
                                 <input type="text" class="form-control" name="endPointName" id="endpoint-name">
                                 <p class="help-block">Name to identify the End Point</p>
                             </div>
                         </div>
-                        <div class="col-sm-4 ">
+                        <div class="col-sm-3">
                             <div class="form-group label-floating">
-                                <label class="control-label" for="endpoint-url">URL</label>
-                                <input type="text" class="form-control" name="endPointUrl" id="endpoint-url">
-                                <p class="help-block">The URL to hit</p>
+                                <label class="control-label" for="endpoint-collection">Collection</label>
+                                <input type="text" class="form-control" name="endPointCollection" id="endpoint-collection">
+                                <p class="help-block">The collection to fetch from, e.g. p15738coll5</p>
                             </div>
                         </div>
-                        <div class="col-sm-4">
+                        <div class="col-sm-3">
+                            <div class="form-group label-floating">
+                                <label class="control-label" for="endpoint-search-string">Search String</label>
+                                <input type="text" class="form-control" name="endPointSearchString" id="endpoint-search-string">
+                                <p class="help-block">Format <em>field^string^mode^operator</em> or 0 to search all</p>
+                            </div>
+                        </div>
+                        <div class="col-sm-3">
+                            <div class="form-group label-floating">
+                                <label class="control-label" for="endpoint-fields">Fields</label>
+                                <input type="text" class="form-control" name="endPointFields" id="endpoint-fields">
+                                <p class="help-block">Fields to return separated by <em>!</em> character</p>
+                            </div>
+                        </div>
+                        <div class="col-sm-3">
+                            <div class="form-group label-floating">
+                                <label class="control-label" for="endpoint-sort">Sort By</label>
+                                <input type="text" class="form-control" name="endPointSort" id="endpoint-sort">
+                                <p class="help-block">Names delimited with <em>!</em>, e.g. <em>date!reverse</em></p>
+                            </div>
+                        </div>
+                        <div class="col-sm-3">
+                            <div class="form-group label-floating">
+                                <label class="control-label" for="endpoint-max-records">Max Records</label>
+                                    <input type="number" min="1" max="1024" class="form-control" name="endPointMaxRecords" id="endpoint-max-records">
+                                <p class="help-block">Maximum number of items to fetch</p>
+                            </div>
+                        </div>
+                        <div class="col-sm-3">
+                            <div class="form-group label-floating">
+                                <label class="control-label" for="endpoint-start">Start</label>
+                                <input type="number" min="1" class="form-control" name="endPointStart" id="endpoint-start">
+                                <p class="help-block">Starting number of the first item</p>
+                            </div>
+                        </div>
+                        <div class="col-sm-3">
                             <div class="form-group">
                                 <button id="add-endpoint" type="submit" class="btn btn-block btn-raised btn-primary">
                                     <i class="fa fa-plus"></i> Add Endpoint
@@ -73,7 +108,7 @@
     <div>
         <strong class="hidden-sm hidden-md hidden-lg">URL:</strong>
         {{#unless editUrlMode}}
-            <span title="{{url}}"></span>{{ shortenURl }} <a class="edit-url-button" href="#"><i
+            <span title="{{url}}"></span>{{ shortenedURl }} <a class="edit-url-button" href="#"><i
                 class="fa fa-pencil"></i></a>
         {{else}}
             {{> endPointUrlEditForm}}
