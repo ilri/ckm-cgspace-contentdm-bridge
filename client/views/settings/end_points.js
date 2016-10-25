@@ -1,5 +1,16 @@
-editUrl = new ReactiveVar();
+editEndPoint = new ReactiveVar();
 selectedEndPoint = new ReactiveVar();
+
+var floatLabels = function () {
+    $("input[type=text]").val($("input").val() + " ");
+    $("input[type=number]").val(1);
+    $("input").trigger("change");
+};
+
+var landLabels = function () {
+    $("input").val("");
+    $("input").trigger("change");
+};
 
 Template.endPoints.helpers({
     endPoints: function () {
@@ -7,12 +18,15 @@ Template.endPoints.helpers({
     },
     selectedRow: function () {
         return selectedEndPoint.get() == this._id ? "selected" : "";
+    },
+    shortenedURl: function () {
+        return getEndPointURL(this).substring(0, 85);
     }
 });
 
 Template.endPoints.events({
     "click tbody tr": function (e, t) {
-        editUrl.set(null);
+        editEndPoint.set(null);
         if (selectedEndPoint.get() == this._id) {
             selectedEndPoint.set(null);
         } else {
@@ -22,10 +36,21 @@ Template.endPoints.events({
     "click input#edit-url": function (e, t) {
         e.stopPropagation();
     },
-    "click a.edit-url-button": function (e, t) {
+    "click a.edit-end-point-button": function (e, t) {
         e.stopPropagation();
         e.preventDefault();
-        editUrl.set(this._id);
+
+        editEndPoint.set(this._id);
+        floatLabels();
+    },
+    "click a.delete-end-point-button": function (e, t) {
+        e.stopPropagation();
+        e.preventDefault();
+
+        editEndPoint.set(this._id);
+        floatLabels();
+
+        $('#delete-end-point-modal').modal('show');
     },
     "click input#edit-url": function (e, t) {
         e.stopPropagation();
@@ -38,13 +63,13 @@ Template.endPoints.events({
             } else {
                 EndPoints.update({_id: this._id}, {$unset: {url: 1}}); // remove url field
             }
-            editUrl.set(null);
+            editEndPoint.set(null);
         } else if (e.keyCode == 27) { // Undo change
-            editUrl.set(null);
+            editEndPoint.set(null);
         }
     },
     "blur input#edit-url": function (e, t) {
-        editUrl.set(null);
+        editEndPoint.set(null);
     },
 });
 
@@ -52,7 +77,32 @@ Template.endPointsForm.onRendered(function () {
     $.material.init();
 });
 
+Template.endPointsForm.helpers({
+    endPoint: function () {
+        return editEndPoint.get() ? EndPoints.findOne({_id: editEndPoint.get()}) : {};
+    },
+    formTitle: function () {
+        return editEndPoint.get() ? "Edit End Point" : "Add new End Point";
+    },
+    buttonIcon: function () {
+        return editEndPoint.get() ? "fa-save" : "fa-plus";
+    },
+    buttonText: function () {
+        return editEndPoint.get() ? "Save Endpoint" : "Add Endpoint";
+    },
+    selectedEndPointName: function () {
+        return EndPoints.findOne({_id: editEndPoint.get()}).name;
+    }
+});
+
 Template.endPointsForm.events({
+    "click button#cancel-action": function (e) {
+        e.stopPropagation();
+        e.preventDefault();
+
+        editEndPoint.set(null);
+        landLabels();
+    },
     "submit #end-points-form": function (e) {
         e.preventDefault();
 
@@ -62,28 +112,44 @@ Template.endPointsForm.events({
             searchString: e.target.elements.endPointSearchString.value,
             fields: e.target.elements.endPointFields.value,
             sort: e.target.elements.endPointSort.value,
-            maxRecords: e.target.elements.endPointMaxRecords.value,
-            start: e.target.elements.endPointStart.value
+            pager: {
+                maxRecords: e.target.elements.endPointMaxRecords.value,
+                start: e.target.elements.endPointStart.value
+            }
         };
 
         // @TODO: Validate document
-        EndPoints.insert(newEndPoint);
+        if (editEndPoint.get()) {
+            EndPoints.update({_id: editEndPoint.get()}, {
+                $set: {
+                    name: newEndPoint.name,
+                    collection: newEndPoint.collection,
+                    searchString: newEndPoint.searchString,
+                    fields: newEndPoint.fields,
+                    sort: newEndPoint.sort,
+                    "pager.maxRecords": newEndPoint.pager.maxRecords,
+                    "pager.start": newEndPoint.pager.start
+                }
+            });
+            editEndPoint.set(null);
+        } else {
+            EndPoints.insert(newEndPoint);
+        }
 
         // Clear form
-        e.target.reset();
+        landLabels();
     }
 });
 
-Template.endPointUrl.helpers({
-    editUrlMode: function () {
-        return editUrl.get() == this._id;
-    },
-    shortenedURl: function(){
-        return getEndPointURL(this).substring(0, 85);
-    }
-});
+Template.deleteEndPointModal.events({
+    "click #delete-end-point": function (e) {
+        e.preventDefault();
 
-Template.endPointUrlEditForm.onRendered(function () {
-    $.material.init();
-    $("#edit-url").focus();
+        EndPoints.remove({_id: editEndPoint.get()}, function(error){
+            if(error) throw error;
+
+            editEndPoint.set(null);
+            $('#delete-end-point-modal').modal('hide');
+        });
+    }
 });

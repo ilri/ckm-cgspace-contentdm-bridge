@@ -8,7 +8,8 @@
                     <thead>
                     <tr>
                         <th class="col-md-3 hidden-xs">Name</th>
-                        <th class="col-md-9 hidden-xs">URL</th>
+                        <th class="col-md-8 hidden-xs">URL</th>
+                        <th class="col-md-1 hidden-xs"></th>
                     </tr>
                     </thead>
                     <tbody>
@@ -17,11 +18,26 @@
                             <td class="col-md-3">
                                 <strong class="hidden-sm hidden-md hidden-lg">Name:</strong> {{ name }}
                                 <div class="visible-xs">
-                                    {{> endPointUrl }}
+                                    <strong class="hidden-sm hidden-md hidden-lg">URL:</strong>
+                                    <span title="{{url}}"></span>{{ shortenedURl }}
+                                </div>
+                                <div class="visible-xs">
+                                    <a class="edit-end-point-button" href="#">
+                                        <i class="fa {{buttonIcon}}"></i>
+                                    </a>
                                 </div>
                             </td>
-                            <td class="col-md-9 hashTag hidden-xs">
-                                {{> endPointUrl }}
+                            <td class="col-md-8 hashTag hidden-xs">
+                                <strong class="hidden-sm hidden-md hidden-lg">URL:</strong>
+                                <span title="{{url}}"></span>{{ shortenedURl }}
+                            </td>
+                            <td class="col-md-1 hidden-xs text-center">
+                                <a class="edit-end-point-button action-button" href="#">
+                                    <i class="fa fa-pencil"></i>
+                                </a>
+                                <a class="delete-end-point-button action-button" href="#" data-toggle="modal" data-target="#delete-end-point-modal">
+                                    <i class="fa fa-close"></i>
+                                </a>
                             </td>
                         </tr>
                     {{/each}}
@@ -30,92 +46,119 @@
             </div>
         </div>
     </div>
+    {{> deleteEndPointModal}}
 </template>
 
 <template name="endPointsForm">
     <div class="row">
         <div class="panel panel-default items">
             <div class="panel-heading">
-                <h4>Add new End Point</h4>
+                <h4>{{formTitle}}</h4>
             </div>
             <div class="panel-body end-points-list">
                 <form id="end-points-form">
-                    <div class="row">
-                        <div class="col-sm-3">
-                            <div class="form-group label-floating">
-                                <label class="control-label" for="endpoint-name">Name</label>
-                                <input type="text" class="form-control" name="endPointName" id="endpoint-name">
-                                <p class="help-block">Name to identify the End Point</p>
+                    {{#with endPoint}}
+                        <div class="row">
+                            <div class="col-sm-3">
+                                <div class="form-group label-floating">
+                                    <label class="control-label" for="endpoint-name">Name</label>
+                                    <input type="text" class="form-control" name="endPointName" id="endpoint-name"
+                                           value="{{name}}">
+                                    <p class="help-block">Name to identify the End Point</p>
+                                </div>
+                            </div>
+                            <div class="col-sm-3">
+                                <div class="form-group label-floating">
+                                    <label class="control-label" for="endpoint-collection">Collection</label>
+                                    <input type="text" class="form-control" name="endPointCollection"
+                                           id="endpoint-collection" value="{{collection}}">
+                                    <p class="help-block">The collection to fetch from, e.g. p15738coll5</p>
+                                </div>
+                            </div>
+                            <div class="col-sm-3">
+                                <div class="form-group label-floating">
+                                    <label class="control-label" for="endpoint-search-string">Search String</label>
+                                    <input type="text" class="form-control" name="endPointSearchString"
+                                           id="endpoint-search-string" value="{{searchString}}">
+                                    <p class="help-block">Format <em>field^string^mode^operator</em> or 0 to search all
+                                    </p>
+                                </div>
+                            </div>
+                            <div class="col-sm-3">
+                                <div class="form-group label-floating">
+                                    <label class="control-label" for="endpoint-fields">Fields</label>
+                                    <input type="text" class="form-control" name="endPointFields" id="endpoint-fields"
+                                           value="{{fields}}">
+                                    <p class="help-block">Fields to return separated by <em>!</em> character</p>
+                                </div>
+                            </div>
+                            <div class="col-sm-3">
+                                <div class="form-group label-floating">
+                                    <label class="control-label" for="endpoint-sort">Sort By</label>
+                                    <input type="text" class="form-control" name="endPointSort" id="endpoint-sort"
+                                           value="{{sort}}">
+                                    <p class="help-block">Names delimited with <em>!</em>, e.g. <em>date!reverse</em>
+                                    </p>
+                                </div>
+                            </div>
+                            <div class="col-sm-3">
+                                <div class="form-group label-floating">
+                                    <label class="control-label" for="endpoint-max-records">Max Records</label>
+                                    <input type="number" min="1" max="1024" class="form-control"
+                                           name="endPointMaxRecords" id="endpoint-max-records"
+                                           value="{{pager.maxRecords}}">
+                                    <p class="help-block">Maximum number of items to fetch</p>
+                                </div>
+                            </div>
+                            <div class="col-sm-3">
+                                <div class="form-group label-floating">
+                                    <label class="control-label" for="endpoint-start">Start</label>
+                                    <input type="number" min="1" class="form-control" name="endPointStart"
+                                           id="endpoint-start" value="{{pager.start}}">
+                                    <p class="help-block">Starting number of the first item</p>
+                                </div>
+                            </div>
+                            <div class="col-sm-3">
+                                <div class="form-group">
+                                    <button id="add-endpoint" type="submit"
+                                            class="btn btn-sm btn-raised btn-primary">
+                                        <i class="fa {{buttonIcon}}"></i> {{buttonText}}
+                                    </button>
+                                    <button id="cancel-action" type="submit"
+                                            class="btn btn-sm btn-raised btn-danger">
+                                        <i class="fa fa-close"></i>
+                                    </button>
+                                </div>
                             </div>
                         </div>
-                        <div class="col-sm-3">
-                            <div class="form-group label-floating">
-                                <label class="control-label" for="endpoint-collection">Collection</label>
-                                <input type="text" class="form-control" name="endPointCollection" id="endpoint-collection">
-                                <p class="help-block">The collection to fetch from, e.g. p15738coll5</p>
-                            </div>
-                        </div>
-                        <div class="col-sm-3">
-                            <div class="form-group label-floating">
-                                <label class="control-label" for="endpoint-search-string">Search String</label>
-                                <input type="text" class="form-control" name="endPointSearchString" id="endpoint-search-string">
-                                <p class="help-block">Format <em>field^string^mode^operator</em> or 0 to search all</p>
-                            </div>
-                        </div>
-                        <div class="col-sm-3">
-                            <div class="form-group label-floating">
-                                <label class="control-label" for="endpoint-fields">Fields</label>
-                                <input type="text" class="form-control" name="endPointFields" id="endpoint-fields">
-                                <p class="help-block">Fields to return separated by <em>!</em> character</p>
-                            </div>
-                        </div>
-                        <div class="col-sm-3">
-                            <div class="form-group label-floating">
-                                <label class="control-label" for="endpoint-sort">Sort By</label>
-                                <input type="text" class="form-control" name="endPointSort" id="endpoint-sort">
-                                <p class="help-block">Names delimited with <em>!</em>, e.g. <em>date!reverse</em></p>
-                            </div>
-                        </div>
-                        <div class="col-sm-3">
-                            <div class="form-group label-floating">
-                                <label class="control-label" for="endpoint-max-records">Max Records</label>
-                                    <input type="number" min="1" max="1024" class="form-control" name="endPointMaxRecords" id="endpoint-max-records">
-                                <p class="help-block">Maximum number of items to fetch</p>
-                            </div>
-                        </div>
-                        <div class="col-sm-3">
-                            <div class="form-group label-floating">
-                                <label class="control-label" for="endpoint-start">Start</label>
-                                <input type="number" min="1" class="form-control" name="endPointStart" id="endpoint-start">
-                                <p class="help-block">Starting number of the first item</p>
-                            </div>
-                        </div>
-                        <div class="col-sm-3">
-                            <div class="form-group">
-                                <button id="add-endpoint" type="submit" class="btn btn-block btn-raised btn-primary">
-                                    <i class="fa fa-plus"></i> Add Endpoint
-                                </button>
-                            </div>
-                        </div>
-                    </div>
+                    {{/with}}
                 </form>
             </div>
         </div>
     </div>
 </template>
 
-<template name="endPointUrl">
-    <div>
-        <strong class="hidden-sm hidden-md hidden-lg">URL:</strong>
-        {{#unless editUrlMode}}
-            <span title="{{url}}"></span>{{ shortenedURl }} <a class="edit-url-button" href="#"><i
-                class="fa fa-pencil"></i></a>
-        {{else}}
-            {{> endPointUrlEditForm}}
-        {{/unless}}
+<template name="deleteEndPointModal">
+    <div id="delete-end-point-modal" class="modal fade" tabindex="-1" role="dialog">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span
+                            aria-hidden="true">&times;</span></button>
+                    <h4 class="modal-title">Delete End Point</h4>
+                </div>
+                <div class="modal-body">
+                    <div class="alert alert-warning alert-dismissible" role="alert">
+                        <strong><i class="fa fa-danger"></i> Warning!</strong> Are you sure you want to delete
+                        the {{name}} End Point?
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-raised btn-default" data-dismiss="modal">Cancel</button>
+                    <button id="delete-end-point" type="button" class="btn btn-raised btn-danger">Delete</button>
+                </div>
+            </div>
+        </div>
     </div>
 </template>
 
-<template name="endPointUrlEditForm">
-    <input id="edit-url" type="text" value="{{url}}" autofocus="autofocus"/>
-</template>
