@@ -1,6 +1,7 @@
 isEndPointSelected = new ReactiveVar(false);
 selectedEndPoint = new ReactiveVar(null);
 newAdditions = new ReactiveVar(0);
+fetchAll = new ReactiveVar(true);
 
 fetchEvent.addListener('progress', function (userId, newAdditions, percentage) {
     if (Meteor.userId() == userId) {
@@ -44,16 +45,26 @@ Template.fetchItems.events({
             selectedEndPoint.set(null);
         }
     },
+    "change #fetch-all": function (e, t) {
+        if ($("#fetch-all").prop("checked")) {
+            fetchAll.set(true);
+        } else {
+            fetchAll.set(false);
+        }
+    },
     "submit form#fetch-items": function (e, t) {
         e.preventDefault();
         t.$("#fetch-items-button").addClass('disabled').children("i").addClass("fa-spin");
 
 
-        Meteor.call("getEndPointItems", selectedEndPoint.get(), function (error) {
+        var methodToCall = fetchAll.get() == true ? "getAllEndPointItems" : "getEndPointItems";
+
+        Meteor.call(methodToCall, selectedEndPoint.get(), function (error, updatedEndPoint) {
             if (error) {
                 toastr.error(error, "Error while getting items from End Point, please try again!");
                 $("#fetch-items-button").removeClass('disabled').children("i").removeClass("fa-spin");
             } else {
+                $("#endpoint-to-use").trigger("change");
                 toastr.info(
                     "<strong id='items-imported'></strong> End Point items imported." +
                     "<div class='progress'> " +
@@ -67,18 +78,12 @@ Template.fetchItems.events({
                     }
                 );
             }
-        })
+        });
     }
 });
 
 Template.endPointStat.helpers({
-    start: function () {
-        return selectedEndPoint.get() && selectedEndPoint.get().pager ? selectedEndPoint.get().pager.start : "";
-    },
-    maxrecs: function () {
-        return selectedEndPoint.get() && selectedEndPoint.get().pager ? selectedEndPoint.get().pager.maxrecs : "";
-    },
-    total: function () {
-        return selectedEndPoint.get() && selectedEndPoint.get().pager ? selectedEndPoint.get().pager.total : "";
+    selectedEndPoint: function () {
+        return selectedEndPoint.get() ? selectedEndPoint.get() : {};
     }
 });

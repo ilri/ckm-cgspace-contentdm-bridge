@@ -9,18 +9,27 @@
                 <div class="panel-body">
                     <form id="fetch-items">
                         <div class="row">
-                            <div class="col-sm-6">
+                            <div class="col-sm-4">
                                 <div class="form-group label-floating">
                                     <label class="control-label" for="endpoint-to-use">Select End Point</label>
                                     <select id="endpoint-to-use" class="form-control">
-                                        <option value=""> </option>
+                                        <option value=""></option>
                                         {{#each endPoints}}
                                             <option value="{{_id}}">{{name}}</option>
                                         {{/each}}
                                     </select>
                                 </div>
                             </div>
-                            <div class="col-sm-6">
+                            <div class="col-sm-4">
+                                <div class="form-group">
+                                    <div class="checkbox">
+                                        <label>
+                                            <input id="fetch-all" type="checkbox"> Fetch All
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-sm-4">
                                 <div class="form-group">
                                     <button id="fetch-items-button"
                                             class="btn btn-default btn-block btn-success btn-raised"
@@ -43,9 +52,11 @@
 
 <template name="endPointStat">
     <div class="row">
-        <div class="col-sm-4"><span>Start: {{start}}</span></div>
-        <div class="col-sm-4"><span>Max. # of items to fetch: {{maxrecs}}</span></div>
-        <div class="col-sm-4"><span>Total # of items: {{total}}</span></div>
+        {{#with selectedEndPoint}}
+            <div class="col-sm-4"><span>Start: {{pager.start}}</span></div>
+            <div class="col-sm-4"><span>Max. # of items to fetch: {{pager.maxRecords}}</span></div>
+            <div class="col-sm-4"><span>Total # of items: {{pager.total}}</span></div>
+        {{/with}}
     </div>
 </template>
 
