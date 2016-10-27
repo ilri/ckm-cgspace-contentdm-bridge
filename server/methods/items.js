@@ -1,25 +1,102 @@
 fetchIntervalHandle = null;
 fetchSettings = new ReactiveVar({});
 
+function requestItems(endPoint, newAdditions) {
+    var endPointStart = endPoint.pager.start;
+
+    Meteor.http.get(getEndPointURL(endPoint), function (error, results) {
+        if (error) throw error;
+
+        if ((results.data.records.length)) {
+            // Update breaking point
+            endPointStart = parseInt(results.data.pager.maxrecs) + parseInt(results.data.pager.start);
+
+            // Update endPoint with received results
+            EndPoints.update({_id: endPoint._id}, {
+                $set: {
+                    pager: {
+                        start: parseInt(results.data.pager.maxrecs) + parseInt(results.data.pager.start),
+                        maxRecords: parseInt(results.data.pager.maxrecs),
+                        total: parseInt(results.data.pager.total),
+                    }
+                }
+            });
+
+            _.each(results.data.records, function (item) {
+
+                // Check if the items is not in the database
+                if (Items.find({itemId: item.dmrecord}).count() == 0) {
+                    var doc = {
+                        endPointId: endPoint._id,
+                        collection: item.collection.replace("/", ""),
+                        itemId: parseInt(item.dmrecord),
+                        title: item.title.trim() + ": " + item.subtit.trim(),
+                        authors: item.creato.trim(),
+                        issueDate: parseInt(item.date) ? item.date : "",
+                        modifiedDate: new Date(item.dmmodified),
+                        importedDate: new Date(),
+                        abstract: item.descri.trim(),
+                        seriesName: item.series.trim(),                  // check CGS REST response
+                        seriesNumber: item.seriesa ? item.seriesa.trim() : "",               // check CGS REST response
+                        publisher: item.publis.trim(),
+                        place: item.place.trim(),
+                        citation: item.full.trim(),
+                        language: filterLanguage(item.langua),
+                        agrovocSubjects: item.loc.toUpperCase(),
+                        region: filterRegions(item.subjec, true),
+                        country: filterCountries(item.subjec, false),
+                        url: "http://ebrary.ifpri.org/cdm/ref/collection/" + item.collection.replace("/", "") + "/id/" + item.dmrecord,
+                        crp: filterCRP(item.cgiar),
+                        outputType: filterType(item.type),
+                        orcid: item.orcid.trim(),
+                        doi: item.doi.trim()
+                    };
+
+                    Items.insert(doc);
+                    // increment new items count
+                    newAdditions++;
+                    // send progress percentage
+                    fetchEvent.emit("progress", Meteor.userId(), newAdditions, (newAdditions / endPoint.pager.total) * 100 + "%");
+                }
+            }, results.data.records);
+
+            if (endPointStart > endPoint.pager.total) {
+                // send completed adding items event
+                fetchEvent.emit("complete", Meteor.userId(), newAdditions);
+            } else {
+                requestItems(EndPoints.findOne({_id: endPoint._id}), newAdditions);
+            }
+        }
+    });
+}
+
 Meteor.methods({
-    getEndPointItems: function (endpoint) {
+    getEndPointItems: function (endPoint) {
         this.unblock();
 
         var newAdditions = 0;
 
-        Meteor.http.get(endpoint.url, function (error, results) {
+        Meteor.http.get(getEndPointURL(endPoint), function (error, results) {
             if (error) throw error;
 
             if ((results.data.records.length)) {
-                // Update endpoint with received results
-                EndPoints.update({_id: endpoint._id}, {$set: {pager: results.data.pager}});
+                // Update endPoint with received results
+                EndPoints.update({_id: endPoint._id}, {
+                    $set: {
+                        pager: {
+                            start: parseInt(results.data.pager.maxrecs) + parseInt(results.data.pager.start),
+                            maxRecords: parseInt(results.data.pager.maxrecs),
+                            total: parseInt(results.data.pager.total),
+                        }
+                    }
+                });
 
                 _.each(results.data.records, function (item) {
 
                     // Check if the items is not in the database
-                    if (Items.Collection.find({itemId: item.dmrecord}).count() == 0) {
+                    if (Items.find({itemId: item.dmrecord}).count() == 0) {
                         var doc = {
-                            endPointId: endpoint._id,
+                            endPointId: endPoint._id,
                             collection: item.collection.replace("/", ""),
                             itemId: item.dmrecord,
                             title: item.title + ": " + item.subtit,
@@ -44,7 +121,7 @@ Meteor.methods({
                             doi: item.doi
                         };
 
-                        Items.Collection.insert(doc);
+                        Items.insert(doc);
                         // increment new items count
                         newAdditions++;
                         // send progress percentage
@@ -55,7 +132,16 @@ Meteor.methods({
                 fetchEvent.emit("complete", Meteor.userId(), newAdditions);
             }
         });
+
+        return EndPoints.findOne({_id: endPoint._id});
     },
+    getAllEndPointItems: function (endPoint) {
+        this.unblock();
+
+        var newAdditions = 0;
+
+        requestItems(endPoint, newAdditions);
+    }
 });
 
 function filterLanguage(language) {
@@ -179,9 +265,9 @@ function filterType(itemType) {
 
 function filterCRP(crps) {
     var cgCRPs = [
-        "DRYLAND SYSTEMS","HUMIDTROPICS","AQUATIC AGRICULTURAL SYSTEMS","GENEBANKS","POLICIES, INSTITUTIONS, AND MARKETS",
-        "WHEAT","MAIZE","RICE","ROOTS, TUBERS AND BANANAS","GRAIN LEGUMES","DRYLAND CEREALS","LIVESTOCK AND FISH",
-        "AGRICULTURE FOR NUTRITION AND HEALTH","WATER, LAND AND ECOSYSTEMS","FORESTS, TREES AND AGROFORESTRY",
+        "DRYLAND SYSTEMS", "HUMIDTROPICS", "AQUATIC AGRICULTURAL SYSTEMS", "GENEBANKS", "POLICIES, INSTITUTIONS, AND MARKETS",
+        "WHEAT", "MAIZE", "RICE", "ROOTS, TUBERS AND BANANAS", "GRAIN LEGUMES", "DRYLAND CEREALS", "LIVESTOCK AND FISH",
+        "AGRICULTURE FOR NUTRITION AND HEALTH", "WATER, LAND AND ECOSYSTEMS", "FORESTS, TREES AND AGROFORESTRY",
         "CLIMATE CHANGE, AGRICULTURE AND FOOD SECURITY"
     ];
 

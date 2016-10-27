@@ -1,4 +1,3 @@
-Meteor.subscribe("allItems");
+Meteor.subscribe("items");
 Meteor.subscribe("communities");
 Meteor.subscribe("endPoints");
-Meteor.subscribe("latestItem");
