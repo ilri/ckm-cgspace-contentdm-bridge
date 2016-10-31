@@ -1,10 +1,10 @@
-sortField = new ReactiveVar("importedDate");
+sortField = new ReactiveVar("issuedDate");
 
 Template.items.onCreated(function () {
     this.pagination = new Meteor.Pagination(Items, {
         perPage: 50,
         sort: {
-            importedDate: -1
+            issuedDate: -1
         }
     });
 });
@@ -47,10 +47,6 @@ Template.items.events({
         } else {
             sortDirection = -1;
         }
-
-        // Update "Sort By" Advanced Search field
-        $("input:radio").prop("checked", false);
-        $("input:radio[value=" + sortDirection + "]").prop("checked", true);
 
         sortKey = sortField.get();
         sortOption = {};
