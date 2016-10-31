@@ -1,7 +1,7 @@
 isEndPointSelected = new ReactiveVar(false);
 selectedEndPoint = new ReactiveVar(null);
 newAdditions = new ReactiveVar(0);
-fetchAll = new ReactiveVar(true);
+fetchAll = new ReactiveVar(false);
 
 fetchEvent.addListener('progress', function (userId, newAdditions, percentage) {
     if (Meteor.userId() == userId) {
