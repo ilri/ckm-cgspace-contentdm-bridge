@@ -166,7 +166,7 @@ function updateEndpoint(id, pager) {
     });
 }
 
-function    addItems(endPointId, records, additions, total) {
+function addItems(endPointId, records, additions, total) {
 
     _.each(records, function (item) {
 

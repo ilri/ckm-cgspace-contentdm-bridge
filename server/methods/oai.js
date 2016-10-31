@@ -1,8 +1,30 @@
 import js2xmlparser from 'js2xmlparser';
 
 Meteor.methods({
+    oaiGetRecords: function(query) {
+        var item = Items.findOne({url: query.identifier});
+
+        var resObj = {
+            "@": {
+                "xmlns": "http://www.openarchives.org/OAI/2.0/",
+                "xmlns:xsi": "http://www.w3.org/2001/XMLSchema-instance",
+                "xsi:schemaLocation": "http://www.openarchives.org/OAI/2.0/ http://www.openarchives.org/OAI/2.0/OAI-PMH.xsd"
+            },
+            "responseDate": new Date(),
+            "request": {
+                "@": {
+                    "verb": query.verb,
+                    "metadataPrefix": query.metadataPrefix
+                },
+                "#": Meteor.settings.app_endpoint
+            },
+            "ListRecords": {
+                'record': itemRecords
+            }
+        };
+    },
     oaiListRecords: function (query) {
-        var skip = parseInt(query.resumptionToken.substr(resumptionToken.lastIndexOf('/') + 1)) - 1;
+        var skip = parseInt(query.resumptionToken.substr(query.resumptionToken.lastIndexOf('/') + 1)) - 1;
         skip = skip || 0;
 
         var pagedItems = Items.find({}, {
@@ -55,10 +77,10 @@ Meteor.methods({
             "responseDate": new Date(),
             "request": {
                 "@": {
-                    "verb": verb,
-                    "resumptionToken": resumptionToken
+                    "verb": query.verb,
+                    "resumptionToken": query.resumptionToken
                 },
-                "#": "http://localhost:3000/oai/request"
+                "#": Meteor.settings.app_endpoint
             },
             "ListRecords": {
                 'record': itemRecords
