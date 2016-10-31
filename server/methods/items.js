@@ -1,149 +1,6 @@
 fetchIntervalHandle = null;
 fetchSettings = new ReactiveVar({});
 
-function requestItems(endPoint, newAdditions) {
-    var endPointStart = endPoint.pager.start;
-
-    Meteor.http.get(getEndPointURL(endPoint), function (error, results) {
-        if (error) throw error;
-
-        if ((results.data.records.length)) {
-            // Update breaking point
-            endPointStart = parseInt(results.data.pager.maxrecs) + parseInt(results.data.pager.start);
-
-            // Update endPoint with received results
-            EndPoints.update({_id: endPoint._id}, {
-                $set: {
-                    pager: {
-                        start: parseInt(results.data.pager.maxrecs) + parseInt(results.data.pager.start),
-                        maxRecords: parseInt(results.data.pager.maxrecs),
-                        total: parseInt(results.data.pager.total),
-                    }
-                }
-            });
-
-            _.each(results.data.records, function (item) {
-
-                // Check if the items is not in the database
-                if (Items.find({itemId: item.dmrecord}).count() == 0) {
-                    var doc = {
-                        endPointId: endPoint._id,
-                        collection: item.collection.replace("/", ""),
-                        itemId: parseInt(item.dmrecord),
-                        title: item.title.trim() + ": " + item.subtit.trim(),
-                        authors: item.creato.trim(),
-                        issueDate: parseInt(item.date) ? item.date : "",
-                        modifiedDate: new Date(item.dmmodified),
-                        importedDate: new Date(),
-                        abstract: item.descri.trim(),
-                        seriesName: item.series.trim(),                  // check CGS REST response
-                        seriesNumber: item.seriesa ? item.seriesa.trim() : "",               // check CGS REST response
-                        publisher: item.publis.trim(),
-                        place: item.place.trim(),
-                        citation: item.full.trim(),
-                        language: filterLanguage(item.langua),
-                        agrovocSubjects: item.loc.toUpperCase(),
-                        region: filterRegions(item.subjec, true),
-                        country: filterCountries(item.subjec, false),
-                        url: "http://ebrary.ifpri.org/cdm/ref/collection/" + item.collection.replace("/", "") + "/id/" + item.dmrecord,
-                        crp: filterCRP(item.cgiar),
-                        outputType: filterType(item.type),
-                        orcid: item.orcid.trim(),
-                        doi: item.doi.trim()
-                    };
-
-                    Items.insert(doc);
-                    // increment new items count
-                    newAdditions++;
-                    // send progress percentage
-                    fetchEvent.emit("progress", Meteor.userId(), newAdditions, (newAdditions / endPoint.pager.total) * 100 + "%");
-                }
-            }, results.data.records);
-
-            if (endPointStart > endPoint.pager.total) {
-                // send completed adding items event
-                fetchEvent.emit("complete", Meteor.userId(), newAdditions);
-            } else {
-                requestItems(EndPoints.findOne({_id: endPoint._id}), newAdditions);
-            }
-        }
-    });
-}
-
-Meteor.methods({
-    getEndPointItems: function (endPoint) {
-        this.unblock();
-
-        var newAdditions = 0;
-
-        Meteor.http.get(getEndPointURL(endPoint), function (error, results) {
-            if (error) throw error;
-
-            if ((results.data.records.length)) {
-                // Update endPoint with received results
-                EndPoints.update({_id: endPoint._id}, {
-                    $set: {
-                        pager: {
-                            start: parseInt(results.data.pager.maxrecs) + parseInt(results.data.pager.start),
-                            maxRecords: parseInt(results.data.pager.maxrecs),
-                            total: parseInt(results.data.pager.total),
-                        }
-                    }
-                });
-
-                _.each(results.data.records, function (item) {
-
-                    // Check if the items is not in the database
-                    if (Items.find({itemId: item.dmrecord}).count() == 0) {
-                        var doc = {
-                            endPointId: endPoint._id,
-                            collection: item.collection.replace("/", ""),
-                            itemId: item.dmrecord,
-                            title: item.title + ": " + item.subtit,
-                            authors: item.creato,
-                            issueDate: parseInt(item.date) ? item.date : "",
-                            modifiedDate: item.dmmodified,
-                            importedDate: new Date(),
-                            abstract: item.descri,
-                            seriesName: item.series,                  // check CGS REST response
-                            seriesNumber: item.seriesa,               // check CGS REST response
-                            publisher: item.publis,
-                            place: item.place,
-                            citation: item.full,
-                            language: filterLanguage(item.langua),
-                            agrovocSubjects: item.loc.toUpperCase(),
-                            region: filterRegions(item.subjec, true),
-                            country: filterCountries(item.subjec, false),
-                            url: "http://ebrary.ifpri.org/cdm/ref/collection/" + item.collection.replace("/", "") + "/id/" + item.dmrecord,
-                            crp: filterCRP(item.cgiar),
-                            outputType: filterType(item.type),
-                            orcid: item.orcid,
-                            doi: item.doi
-                        };
-
-                        Items.insert(doc);
-                        // increment new items count
-                        newAdditions++;
-                        // send progress percentage
-                        fetchEvent.emit("progress", Meteor.userId(), newAdditions, (newAdditions / this.length) * 100 + "%");
-                    }
-                }, results.data.records);
-                // send completed adding items event
-                fetchEvent.emit("complete", Meteor.userId(), newAdditions);
-            }
-        });
-
-        return EndPoints.findOne({_id: endPoint._id});
-    },
-    getAllEndPointItems: function (endPoint) {
-        this.unblock();
-
-        var newAdditions = 0;
-
-        requestItems(endPoint, newAdditions);
-    }
-});
-
 function filterLanguage(language) {
     var cgLanguages = [
         {value: "am", name: "Amharic"},
@@ -236,7 +93,6 @@ function filterCountries(countries) {
     return context.filteredCountries.join("; ");
 }
 
-
 function filterType(itemType) {
     var cgTypes = [
         "Audio", "Blog", "Book", "Book Chapter", "Brief", "Brochure", "Case Study", "Conference Paper",
@@ -291,3 +147,106 @@ function filterCRP(crps) {
     return context.filteredCRPs.join("; ");
 }
 
+function compoundTitle(title, subTitle){
+    title = removeTagsAndSpecialChars(title);
+    subTitle = removeTagsAndSpecialChars(subTitle);
+    return subTitle.length ? title + ": " + subTitle : title;
+}
+
+function updateEndpoint(id, pager) {
+    // Update endPoint with received results
+    EndPoints.update({_id: id}, {
+        $set: {
+            pager: {
+                start: parseInt(pager.maxrecs) + parseInt(pager.start),
+                maxRecords: parseInt(pager.maxrecs),
+                total: parseInt(pager.total),
+            }
+        }
+    });
+}
+
+function    addItems(endPointId, records, additions, total) {
+
+    _.each(records, function (item) {
+
+        // Check if the items is not in the database
+        if (Items.find({itemId: item.dmrecord}).count() == 0) {
+            var doc = {
+                endPointId: endPointId,
+                collection: item.collection.replace("/", ""),
+                itemId: parseInt(item.dmrecord),
+                title: compoundTitle(item.title, item.subtit),
+                authors: item.creato.trim(),
+                issuedDate: parseInt(item.date) ? new Date(item.date) : null,
+                modifiedDate: new Date(item.dmmodified),
+                importedDate: new Date(),
+                abstract: removeTagsAndSpecialChars(item.descri),
+                seriesName: item.series.trim(),
+                seriesNumber: item.seriesa ? item.seriesa.trim() : "",
+                publisher: item.publis.trim(),
+                place: item.place.trim(),
+                citation: removeHTMLTags(item.full),
+                language: filterLanguage(item.langua),
+                agrovocSubjects: item.loc.toUpperCase(),
+                region: filterRegions(item.subjec, true),
+                country: filterCountries(item.subjec, false),
+                url: "http://ebrary.ifpri.org/cdm/ref/collection/" + item.collection.replace("/", "") + "/id/" + item.dmrecord,
+                crp: filterCRP(item.cgiar),
+                outputType: filterType(item.type),
+                orcid: item.orcid.trim(),
+                doi: item.doi.trim()
+            };
+
+            Items.insert(doc);
+            // increment new items count
+            additions++;
+            // send progress percentage
+            fetchEvent.emit("progress", Meteor.userId(), additions, (additions / total) * 100 + "%");
+        }
+    }, records);
+
+    return additions;
+}
+
+function requestItems(endPoint, additions, fetchAll) {
+    var endPointStart = endPoint.pager.start;
+
+    Meteor.http.get(getEndPointURL(endPoint), function (error, results) {
+        if (error) throw error;
+
+        if (results.data.records.length) {
+            // Update breaking point
+            endPointStart = parseInt(results.data.pager.maxrecs) + parseInt(results.data.pager.start);
+
+            // Total number of items to import
+            var total = fetchAll ? results.data.pager.total : results.data.records.length;
+
+            updateEndpoint(endPoint._id, results.data.pager);
+
+            additions = addItems(endPoint._id, results.data.records, additions, total);
+
+            if (fetchAll) {
+                if (endPointStart > endPoint.pager.total) {
+                    // send completed adding items event
+                    fetchEvent.emit("complete", Meteor.userId(), additions);
+                } else {
+                    requestItems(EndPoints.findOne({_id: endPoint._id}), additions, true);
+                }
+            } else {
+                // send completed adding items event
+                fetchEvent.emit("complete", Meteor.userId(), additions);
+            }
+        }
+    });
+}
+
+Meteor.methods({
+    getEndPointItems: function (endPoint, fetchAll) {
+        this.unblock();
+
+        var newAdditions = 0;
+
+        requestItems(endPoint, newAdditions, fetchAll);
+    }
+});

@@ -61,6 +61,9 @@ Template.items.events({
 });
 
 Template.item.helpers({
+    issuedOn: function () {
+        return this.issuedDate ? moment(this.issuedDate).format('YYYY') : 'N/A';
+    },
     importedOn: function () {
         return moment(this.importedDate).format('YYYY-MM-DD');
     },

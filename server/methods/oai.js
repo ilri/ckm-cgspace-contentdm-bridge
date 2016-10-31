@@ -1,15 +1,8 @@
 import js2xmlparser from 'js2xmlparser';
 
-function removeTagsAndSpecialChars(str) {
-    return str.replace(/(?!\w|\s)./g, '')
-        .replace(/<(?:.|\n)*?>/gm, '')
-        .replace(/\s+/g, ' ')
-        .replace(/^(\s*)([\W\w]*)(\b\s*$)/g, '$2');
-}
-
 Meteor.methods({
-    getOAIItems: function (verb, resumptionToken) {
-        var skip = parseInt(resumptionToken.substr(resumptionToken.lastIndexOf('/') + 1)) - 1;
+    oaiListRecords: function (query) {
+        var skip = parseInt(query.resumptionToken.substr(resumptionToken.lastIndexOf('/') + 1)) - 1;
         skip = skip || 0;
 
         var pagedItems = Items.find({}, {
@@ -35,8 +28,8 @@ Meteor.methods({
                            "xsi:schemaLocation": "http://www.openarchives.org/OAI/2.0/oai_dc/ http://www.openarchives.org/OAI/2.0/oai_dc.xsd",
                        },
                        "dc:contributor": item.authors ? item.authors.split("; ") : "",
-                       "dc:date": [new Date(item.issueDate), new Date(item.modifiedDate)],
-                       "dc:description": removeTagsAndSpecialChars(item.abstract),
+                       "dc:date": [item.issuedDate, item.modifiedDate],
+                       "dc:description": item.abstract,
                        "dc:identifier": [item.citation, item.doi, item.url],
                        "dc:language": item.language,
                        "dc:publisher": item.publisher ? item.publisher.split("; ") : "",
