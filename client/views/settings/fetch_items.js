@@ -1,7 +1,7 @@
 isEndPointSelected = new ReactiveVar(false);
 selectedEndPoint = new ReactiveVar(null);
 newAdditions = new ReactiveVar(0);
-fetchAll = new ReactiveVar(true);
+fetchAll = new ReactiveVar(false);
 
 fetchEvent.addListener('progress', function (userId, newAdditions, percentage) {
     if (Meteor.userId() == userId) {
@@ -56,10 +56,7 @@ Template.fetchItems.events({
         e.preventDefault();
         t.$("#fetch-items-button").addClass('disabled').children("i").addClass("fa-spin");
 
-
-        var methodToCall = fetchAll.get() == true ? "getAllEndPointItems" : "getEndPointItems";
-
-        Meteor.call(methodToCall, selectedEndPoint.get(), function (error, updatedEndPoint) {
+        Meteor.call("getEndPointItems", selectedEndPoint.get(), fetchAll.get(), function (error, updatedEndPoint) {
             if (error) {
                 toastr.error(error, "Error while getting items from End Point, please try again!");
                 $("#fetch-items-button").removeClass('disabled').children("i").removeClass("fa-spin");
