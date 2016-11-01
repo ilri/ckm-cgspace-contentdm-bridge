@@ -3,6 +3,15 @@ sortField = new ReactiveVar("issuedDate");
 Template.items.onCreated(function () {
     this.pagination = new Meteor.Pagination(Items, {
         perPage: 50,
+        fields: {
+            itemId: 1,
+            title: 1,
+            issuedDate: 1,
+            modifiedDate: 1,
+            importedDate: 1,
+            url: 1,
+            doi: 1
+        },
         sort: {
             issuedDate: -1
         }
