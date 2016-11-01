@@ -49,12 +49,10 @@ function getOAIRecord(item) {
 
 function getOAIItemHeader(item) {
     return {
-        "header": {
-            "identifier": item.url,
-            "datestamp": new Date(item.modifiedDate),
-            "setSpec": item.collection
-        }
-    }
+        "identifier": item.url,
+        "datestamp": new Date(item.modifiedDate),
+        "setSpec": item.collection
+    };
 }
 
 function getOAIError(code, message) {
@@ -66,11 +64,11 @@ function getOAIError(code, message) {
     }
 }
 
-function getItemsToSkip(query){
+function getItemsToSkip(query) {
     return query.resumptionToken ? parseInt(query.resumptionToken.substr(query.resumptionToken.lastIndexOf('/') + 1)) - 1 : 0;
 }
 
-function getListFilters(query){
+function getListFilters(query) {
     var filters = {};
 
     if (query.from) {
@@ -80,7 +78,7 @@ function getListFilters(query){
     }
 
     if (query.until) {
-        if(filters["modifiedDate"]){
+        if (filters["modifiedDate"]) {
             filters["modifiedDate"]["$lte"] = new Date(query.until);
         } else {
             filters["modifiedDate"] = {
@@ -163,7 +161,26 @@ Meteor.methods({
         });
 
         resObj["ListRecords"] = {
-            'record': itemHeaders
+            'header': itemHeaders
+        };
+
+        return js2xmlparser.parse("OAI-PMH", resObj);
+    },
+    oaiListMetadataFormats: function (query) {
+        var resObj = getOAIResponseContainer({
+            "@": {
+                "verb": query.verb
+            },
+            "#": Meteor.settings.app_endpoint
+        });
+
+        // TODO: Add custom CGSpace Metadata format
+        resObj['ListMetadataFormats'] = {
+            "metadataFormat": {
+                "metadataPrefix": "oai_dc",
+                "schema": "http://www.openarchives.org/OAI/2.0/oai_dc.xsd",
+                "metadataNamespace": "http://www.openarchives.org/OAI/2.0/oai_dc/"
+            }
         };
 
         return js2xmlparser.parse("OAI-PMH", resObj);
