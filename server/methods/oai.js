@@ -47,6 +47,16 @@ function getOAIRecord(item) {
     };
 }
 
+function getOAIItemHeader(item) {
+    return {
+        "header": {
+            "identifier": item.url,
+            "datestamp": new Date(item.modifiedDate),
+            "setSpec": item.collection
+        }
+    }
+}
+
 function getOAIError(code, message) {
     return {
         "@": {
@@ -54,6 +64,36 @@ function getOAIError(code, message) {
         },
         "#": message
     }
+}
+
+function getItemsToSkip(query){
+    return query.resumptionToken ? parseInt(query.resumptionToken.substr(query.resumptionToken.lastIndexOf('/') + 1)) - 1 : 0;
+}
+
+function getListFilters(query){
+    var filters = {};
+
+    if (query.from) {
+        filters["modifiedDate"] = {
+            "$gte": new Date(query.from)
+        };
+    }
+
+    if (query.until) {
+        if(filters["modifiedDate"]){
+            filters["modifiedDate"]["$lte"] = new Date(query.until);
+        } else {
+            filters["modifiedDate"] = {
+                "$lte": new Date(query.until)
+            };
+        }
+    }
+
+    if (query.set) {
+        filters["collection"] = query.set;
+    }
+
+    return filters;
 }
 
 Meteor.methods({
@@ -99,11 +139,41 @@ Meteor.methods({
 
         return js2xmlparser.parse("OAI-PMH", resObj);
     },
-    oaiListRecords: function (query) {
-        var skip = parseInt(query.resumptionToken.substr(query.resumptionToken.lastIndexOf('/') + 1)) - 1;
-        skip = skip || 0;
+    oaiListIdentifiers: function (query) {
 
-        var pagedItems = Items.find({}, {
+        var skip = getItemsToSkip(query);
+        var filters = getListFilters(query);
+
+        var pagedItems = Items.find(filters, {
+            sort: {itemId: -1},
+            skip: skip,
+            limit: 100
+        }).fetch();
+
+        var itemHeaders = _.map(pagedItems, function (item) {
+            return getOAIItemHeader(item);
+        });
+
+        var resObj = getOAIResponseContainer({
+            "@": {
+                "verb": query.verb,
+                "resumptionToken": query.resumptionToken
+            },
+            "#": Meteor.settings.app_endpoint
+        });
+
+        resObj["ListRecords"] = {
+            'record': itemHeaders
+        };
+
+        return js2xmlparser.parse("OAI-PMH", resObj);
+    },
+    oaiListRecords: function (query) {
+
+        var skip = getItemsToSkip(query);
+        var filters = getListFilters(query);
+
+        var pagedItems = Items.find(filters, {
             sort: {itemId: -1},
             skip: skip,
             limit: 100
