@@ -79,6 +79,26 @@ Meteor.methods({
 
         return js2xmlparser.parse("OAI-PMH", resObj);
     },
+    oaiIdentify: function (query) {
+        var resObj = getOAIResponseContainer({
+            "@": {
+                "verb": query.verb
+            },
+            "#": Meteor.settings.app_endpoint
+        });
+
+        resObj['Identify'] = {
+            "repositoryName": "IFPRI Digital Library - CGSpace Intermediary",
+            "baseURL": Meteor.settings.app_endpoint,
+            "protocolVersion": "2.0",
+            "adminEmail": "cgspace-support@cgiar.org",
+            "earliestDatestamp": "2011-06-15",
+            "deletedRecord": "transient",
+            "granularity": "YYYY-MM-DD"
+        };
+
+        return js2xmlparser.parse("OAI-PMH", resObj);
+    },
     oaiListRecords: function (query) {
         var skip = parseInt(query.resumptionToken.substr(query.resumptionToken.lastIndexOf('/') + 1)) - 1;
         skip = skip || 0;
