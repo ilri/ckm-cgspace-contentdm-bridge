@@ -213,6 +213,30 @@ Meteor.methods({
         };
 
         return js2xmlparser.parse("OAI-PMH", resObj);
+    },
+    oaiListSets: function (query) {
+
+        var endPoints = EndPoints.find({}).fetch();
+
+        var endPointSets = _.map(endPoints, function (endPoint) {
+            return {
+                setSpec: endPoint.collection,
+                setName: endPoint.name
+            };
+        });
+
+        var resObj = getOAIResponseContainer({
+            "@": {
+                "verb": query.verb
+            },
+            "#": Meteor.settings.app_endpoint
+        });
+
+        resObj["ListRecords"] = {
+            'set': endPointSets
+        };
+
+        return js2xmlparser.parse("OAI-PMH", resObj);
     }
 });
 
