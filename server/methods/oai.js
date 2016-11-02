@@ -176,11 +176,18 @@ Meteor.methods({
 
         // TODO: Add custom CGSpace Metadata format
         resObj['ListMetadataFormats'] = {
-            "metadataFormat": {
-                "metadataPrefix": "oai_dc",
-                "schema": "http://www.openarchives.org/OAI/2.0/oai_dc.xsd",
-                "metadataNamespace": "http://www.openarchives.org/OAI/2.0/oai_dc/"
-            }
+            "metadataFormat": [
+                {
+                    "metadataPrefix": "oai_dc",
+                    "schema": "http://www.openarchives.org/OAI/2.0/oai_dc.xsd",
+                    "metadataNamespace": "http://www.openarchives.org/OAI/2.0/oai_dc/"
+                },
+                {
+                    "metadataPrefix": "ore",
+                    "schema": "http://tweety.lanl.gov/public/schemas/2008-06/atom-tron.sch",
+                    "metadataNamespace": "http://www.w3.org/2005/Atom"
+                },
+            ]
         };
 
         return js2xmlparser.parse("OAI-PMH", resObj);
