@@ -1,5 +1,7 @@
 import js2xmlparser from 'js2xmlparser';
 
+var metadataFormats = ['oai_dc'];
+
 function getOAIResponseContainer(request) {
     return {
         "@": {
@@ -7,16 +9,17 @@ function getOAIResponseContainer(request) {
             "xmlns:xsi": "http://www.w3.org/2001/XMLSchema-instance",
             "xsi:schemaLocation": "http://www.openarchives.org/OAI/2.0/ http://www.openarchives.org/OAI/2.0/OAI-PMH.xsd"
         },
-        "responseDate": new Date(),
+        "responseDate": new Date().toISOString(),
         "request": request
     };
 }
 
-function getOAIRecord(item) {
+function getOAIDCRecord(item) {
+    var issuedDate = item.issuedDate ? item.issuedDate.toISOString() : null;
     return {
         "header": {
             "identifier": item.url,
-            "datestamp": new Date(item.modifiedDate),
+            "datestamp": item.modifiedDate.toISOString(),
             "setSpec": item.collection
         },
         "metadata": {
@@ -29,7 +32,7 @@ function getOAIRecord(item) {
                     "xsi:schemaLocation": "http://www.openarchives.org/OAI/2.0/oai_dc/ http://www.openarchives.org/OAI/2.0/oai_dc.xsd",
                 },
                 "dc:contributor": item.authors ? item.authors.split("; ") : "",
-                "dc:date": [item.issuedDate, item.modifiedDate],
+                "dc:date": [issuedDate, item.modifiedDate.toISOString()],
                 "dc:description": item.abstract,
                 "dc:identifier": [item.citation, item.doi, item.url],
                 "dc:language": item.language,
@@ -47,10 +50,10 @@ function getOAIRecord(item) {
     };
 }
 
-function getOAIItemHeader(item) {
+function getOAIDCItemHeader(item) {
     return {
         "identifier": item.url,
-        "datestamp": new Date(item.modifiedDate),
+        "datestamp": new Date(item.modifiedDate).toISOString(),
         "setSpec": item.collection
     };
 }
@@ -94,28 +97,60 @@ function getListFilters(query) {
     return filters;
 }
 
+function getMetadataPrefix(query) {
+    if(query.resumptionToken){
+        return query.resumptionToken.split("/")[0];
+    } else {
+        return query.metadataPrefix;
+    }
+}
+
 Meteor.methods({
     oaiGetRecord: function (query) {
-        var item = Items.findOne({url: query.identifier});
-        var resObj = getOAIResponseContainer({
-            "@": {
-                "verb": query.verb,
-                "identifier": query.identifier,
-                "metadataPrefix": query.metadataPrefix
-            },
+        var resObj = {
             "#": Meteor.settings.app_endpoint
-        });
+        };
 
-        // TODO: also handle the cannotDisseminateFormat error
-        if (!item) {
-            resObj["error"] = getOAIError("idDoesNotExist", "No matching identifier.");
+        // Check if the metadata prefix and identifier are supplied
+        if (!query.metadataPrefix || !query.identifier) {
+            resObj["error"] = getOAIError("badArgument", "GetRecord verb requires the use of the parameters - identifier and metadataPrefix");
         } else {
-            resObj["GetRecord"] = {
-                'record': getOAIRecord(item)
-            };
+            resObj = getOAIResponseContainer({
+                "@": {
+                    "verb": query.verb,
+                    "identifier": query.identifier,
+                    "metadataPrefix": query.metadataPrefix
+                }
+            });
+
+            // Check if the metadata prefix is supported
+            if (!_.contains(metadataFormats, query.metadataPrefix)) {
+                resObj["error"] = getOAIError("cannotDisseminateFormat", "Unknown metadata format");
+            } else {
+                var item = Items.findOne({url: query.identifier});
+
+                // Check if item exists in the database
+                if (!item) {
+                    resObj["error"] = getOAIError("idDoesNotExist", "No matching identifier");
+                } else {
+
+                    // Set the appropriate item depending on the metadata prefix
+                    switch (query.metadataPrefix) {
+                        case 'oai_dc':
+                            resObj["GetRecord"] = _.map(pagedItems, function (item) {
+                                return getOAIDCRecord(item);
+                            });
+                            break;
+                    }
+                }
+            }
         }
 
-        return js2xmlparser.parse("OAI-PMH", resObj);
+        return js2xmlparser.parse("OAI-PMH", resObj, {
+            "declaration": {
+                "encoding": 'UTF-8'
+            }
+        });
     },
     oaiIdentify: function (query) {
         var resObj = getOAIResponseContainer({
@@ -132,39 +167,80 @@ Meteor.methods({
             "adminEmail": "cgspace-support@cgiar.org",
             "earliestDatestamp": "2011-06-15",
             "deletedRecord": "transient",
-            "granularity": "YYYY-MM-DD"
+            "granularity": "YYYY-MM-DD",
+            "description": {
+                "oai-identifier": {
+                    "@": {
+                        "xmlns": "http://www.openarchives.org/OAI/2.0/oai-identifier",
+                        "xmlns:xsi": "http://www.w3.org/2001/XMLSchema-instance",
+                        "xsi:schemaLocation": "http://www.openarchives.org/OAI/2.0/oai-identifier http://www.openarchives.org/OAI/2.0/oai-identifier.xsd"
+                    },
+                    "scheme": "oai",
+                    "repositoryIdentifier": "104.236.11.158",
+                    "delimiter": ":",
+                    "sampleIdentifier": "oai:104.236.11.158:10568/1234"
+                }
+            }
         };
 
-        return js2xmlparser.parse("OAI-PMH", resObj);
+        return js2xmlparser.parse("OAI-PMH", resObj, {
+            "declaration": {
+                "encoding": 'UTF-8'
+            }
+        });
     },
     oaiListIdentifiers: function (query) {
-
         var skip = getItemsToSkip(query);
         var filters = getListFilters(query);
-
-        var pagedItems = Items.find(filters, {
-            sort: {itemId: -1},
-            skip: skip,
-            limit: 100
-        }).fetch();
-
-        var itemHeaders = _.map(pagedItems, function (item) {
-            return getOAIItemHeader(item);
-        });
-
+        var metadataPrefix = getMetadataPrefix(query);
         var resObj = getOAIResponseContainer({
-            "@": {
-                "verb": query.verb,
-                "resumptionToken": query.resumptionToken
-            },
             "#": Meteor.settings.app_endpoint
         });
 
-        resObj["ListRecords"] = {
-            'header': itemHeaders
-        };
+        // Check if a metadata prefix is given
+        if (!metadataPrefix) {
+            resObj["error"] = getOAIError("badArgument", "ListIdentifiers verb must receive the metadataPrefix parameter");
+        } else {
+            resObj["request"]["@"] = query.resumptionToken ? {
+                "verb": query.verb,
+                "resumptionToken": query.resumptionToken
+            } : {
+                "verb": query.verb,
+                "metadataPrefix": metadataPrefix
+            };
 
-        return js2xmlparser.parse("OAI-PMH", resObj);
+            // Check if the metadata prefix is a supported format
+            if (!_.contains(metadataFormats, metadataPrefix)) {
+                resObj["error"] = getOAIError("cannotDisseminateFormat", "Unknown metadata format");
+            } else {
+                var pagedItems = Items.find(filters, {
+                    sort: {itemId: -1},
+                    skip: skip,
+                    limit: 100
+                }).fetch();
+
+                var itemHeaders = [];
+
+                // TODO: Add custom CG metadata item handling here
+                switch (metadataPrefix) {
+                    case 'oai_dc':
+                        itemHeaders = _.map(pagedItems, function (item) {
+                            return getOAIDCItemHeader(item);
+                        });
+                        break;
+                }
+
+                resObj["ListIdentifiers"] = {
+                    'header': itemHeaders
+                };
+            }
+        }
+
+        return js2xmlparser.parse("OAI-PMH", resObj, {
+            "declaration": {
+                "encoding": 'UTF-8'
+            }
+        });
     },
     oaiListMetadataFormats: function (query) {
         var resObj = getOAIResponseContainer({
@@ -181,45 +257,68 @@ Meteor.methods({
                     "metadataPrefix": "oai_dc",
                     "schema": "http://www.openarchives.org/OAI/2.0/oai_dc.xsd",
                     "metadataNamespace": "http://www.openarchives.org/OAI/2.0/oai_dc/"
-                },
-                {
-                    "metadataPrefix": "ore",
-                    "schema": "http://tweety.lanl.gov/public/schemas/2008-06/atom-tron.sch",
-                    "metadataNamespace": "http://www.w3.org/2005/Atom"
-                },
+                }
             ]
         };
 
-        return js2xmlparser.parse("OAI-PMH", resObj);
+        return js2xmlparser.parse("OAI-PMH", resObj, {
+            "declaration": {
+                "encoding": 'UTF-8'
+            }
+        });
     },
     oaiListRecords: function (query) {
-
         var skip = getItemsToSkip(query);
         var filters = getListFilters(query);
-
-        var pagedItems = Items.find(filters, {
-            sort: {itemId: -1},
-            skip: skip,
-            limit: 100
-        }).fetch();
-
-        var itemRecords = _.map(pagedItems, function (item) {
-            return getOAIRecord(item);
-        });
-
+        var metadataPrefix = getMetadataPrefix(query);
         var resObj = getOAIResponseContainer({
-            "@": {
-                "verb": query.verb,
-                "resumptionToken": query.resumptionToken
-            },
             "#": Meteor.settings.app_endpoint
         });
 
-        resObj["ListRecords"] = {
-            'record': itemRecords
-        };
+        // Check if a metadata prefix is given
+        if (!metadataPrefix) {
+            resObj["error"] = getOAIError("badArgument", "ListRecords verb must receive the metadataPrefix parameter");
+        } else {
+            resObj["request"]["@"] = query.resumptionToken ? {
+                "verb": query.verb,
+                "resumptionToken": query.resumptionToken
+            } : {
+                "verb": query.verb,
+                "metadataPrefix": metadataPrefix
+            };
 
-        return js2xmlparser.parse("OAI-PMH", resObj);
+            // Check if the metadata prefix is a supported format
+            if (!_.contains(metadataFormats, metadataPrefix)) {
+                resObj["error"] = getOAIError("cannotDisseminateFormat", "Unknown metadata format");
+            } else {
+                var pagedItems = Items.find(filters, {
+                    sort: {itemId: -1},
+                    skip: skip,
+                    limit: 100
+                }).fetch();
+
+                var itemRecords = [];
+
+                // TODO: Add custom CG metadata item handling here
+                switch (metadataPrefix) {
+                    case 'oai_dc':
+                        itemRecords = _.map(pagedItems, function (item) {
+                            return getOAIDCRecord(item);
+                        });
+                        break;
+                }
+
+                resObj["ListRecords"] = {
+                    'record': itemRecords
+                };
+            }
+        }
+
+        return js2xmlparser.parse("OAI-PMH", resObj, {
+            "declaration": {
+                "encoding": 'UTF-8'
+            }
+        });
     },
     oaiListSets: function (query) {
 
@@ -239,11 +338,14 @@ Meteor.methods({
             "#": Meteor.settings.app_endpoint
         });
 
-        resObj["ListRecords"] = {
+        resObj["ListSets"] = {
             'set': endPointSets
         };
 
-        return js2xmlparser.parse("OAI-PMH", resObj);
+        return js2xmlparser.parse("OAI-PMH", resObj, {
+            "declaration": {
+                "encoding": 'UTF-8'
+            }
+        });
     }
 });
-
