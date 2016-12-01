@@ -38,7 +38,7 @@ function getOAIDCRecord(item) {
                 "dc:language": item.language,
                 "dc:publisher": item.publisher ? item.publisher.split("; ") : "",
                 "dc:relation": item.seriesName,
-                "dc.subjects": item.agrovocSubjects ? item.agrovocSubjects.split("; ") : "",
+                "dc:subject": item.agrovocSubjects ? item.agrovocSubjects.split("; ") : "",
                 "dc:title": item.title,
                 "dc:type": item.outputType,
                 // "cg:contributor": item.crp,
